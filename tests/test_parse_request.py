@@ -43,10 +43,39 @@ def test_date_range_request_reads_stated_fields():
     assert trip.walking_level == WalkingLevel.MODERATE
 
 
-def test_date_range_request_without_style_names_missing_fields():
-    try:
-        parse_trip_request(DATE_EXAMPLE)
-    except ValueError as exc:
-        assert str(exc) == "missing travel_style, walking_level"
-    else:
-        raise AssertionError("expected ValueError")
+def test_date_range_request_allows_missing_style_and_walking():
+    trip = parse_trip_request(DATE_EXAMPLE)
+
+    assert trip.destination == "Japan"
+    assert trip.days == 8
+    assert trip.adults == 2
+    assert trip.children == 2
+    assert trip.budget == 6000
+    assert trip.currency == "CAD"
+    assert trip.cities == ["Tokyo", "Kyoto"]
+    assert trip.travel_style is None
+    assert trip.walking_level is None
+
+
+def test_request_without_budget_or_currency():
+    trip = parse_trip_request(
+        "Plan a 7-day trip to Japan for 2 adults. I want Tokyo."
+    )
+
+    assert trip.destination == "Japan"
+    assert trip.days == 7
+    assert trip.adults == 2
+    assert trip.children is None
+    assert trip.budget is None
+    assert trip.currency is None
+    assert trip.cities == ["Tokyo"]
+
+
+def test_request_without_days_or_people():
+    trip = parse_trip_request("Plan a trip to Japan for sightseeing. I want Tokyo.")
+
+    assert trip.destination == "Japan"
+    assert trip.days is None
+    assert trip.adults is None
+    assert trip.children is None
+    assert trip.cities == ["Tokyo"]

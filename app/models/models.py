@@ -19,14 +19,16 @@ class WalkingLevel(str, Enum):
 
 class TripRequest(BaseModel):
     destination: str = Field(min_length=1, description="Country or region")
-    days: int = Field(ge=1)
-    adults: int = Field(ge=1)
-    children: int = Field(ge=0)
-    budget: float = Field(gt=0)
-    currency: str = Field(min_length=3, max_length=3, description="ISO 4217 code")
+    days: int | None = Field(default=None, ge=1)
+    adults: int | None = Field(default=None, ge=1)
+    children: int | None = Field(default=None, ge=0)
+    budget: float | None = Field(default=None, gt=0)
+    currency: str | None = Field(
+        default=None, min_length=3, max_length=3, description="ISO 4217 code"
+    )
     cities: list[str] = Field(default_factory=list)
-    travel_style: TravelStyle
-    walking_level: WalkingLevel
+    travel_style: TravelStyle | None = None
+    walking_level: WalkingLevel | None = None
 
     @field_validator("destination")
     @classmethod
@@ -38,7 +40,9 @@ class TripRequest(BaseModel):
 
     @field_validator("currency")
     @classmethod
-    def normalize_currency(cls, value: str) -> str:
+    def normalize_currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         code = value.strip().upper()
         if len(code) != 3 or not code.isalpha():
             raise ValueError("currency must be a 3-letter ISO code")

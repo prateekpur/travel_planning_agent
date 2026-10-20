@@ -17,16 +17,16 @@ Use exactly these fields:
 Rules:
 
 - destination is the country or region. Trim surrounding whitespace.
-- days is an integer of at least 1. Read an explicit count such as "7-day" or "7 days". If the query gives a date range, count every calendar date from the start date through the end date.
-- adults is an integer of at least 1. Treat number words such as "two" as digits.
-- children is an integer of 0 or more. "kid", "kids", "child", and "children" all mean children. Use 0 when the query does not mention children.
-- budget is a number greater than 0. Strip currency symbols and thousands separators ("$6,000" and "C$6,000" are 6000). Ignore words such as "around".
-- currency is a 3-letter ISO 4217 code in uppercase. Read a code written next to the amount ("6000 CAD"). Also map a symbol prefix: C$ to CAD, US$ to USD, A$ to AUD, NZ$ to NZD, € to EUR, £ to GBP. A bare "$" does not name a currency.
+- days is optional. When stated, it is an integer of at least 1. Read an explicit count such as "7-day" or "7 days". If the query gives a date range, count every calendar date from the start date through the end date. Use null when the query does not name a length.
+- adults is optional. When stated, it is an integer of at least 1. Treat number words such as "two" as digits. Use null when the query does not name a number of adults.
+- children is optional. When stated, it is an integer of 0 or more. "kid", "kids", "child", and "children" all mean children. Use null when the query does not mention children.
+- budget is optional. When stated, it is a number greater than 0. Strip currency symbols and thousands separators ("$6,000" and "C$6,000" are 6000). Ignore words such as "around". Use null when the query does not name a budget.
+- currency is optional. When stated, it is a 3-letter ISO 4217 code in uppercase. Read a code written next to the amount ("6000 CAD"). Also map a symbol prefix: C$ to CAD, US$ to USD, A$ to AUD, NZ$ to NZD, € to EUR, £ to GBP. A bare "$" does not name a currency. Use null when the query does not name a currency.
 - cities is an array of city names. Split lists joined by commas and "and". Drop blank names. Use [] when no cities are named.
-- travel_style must be one of: relaxed, balanced, adventure, cultural, luxury.
-- walking_level must be one of: low, moderate, high. Read it from a phrase about walking, such as "moderate walking".
+- travel_style is optional. When stated, it must be one of: relaxed, balanced, adventure, cultural, luxury. Use null when the query does not name a style.
+- walking_level is optional. When stated, it must be one of: low, moderate, high, read from a phrase about walking such as "moderate walking". Use null when the query does not name a walking level.
 
-When destination, days, adults, budget, currency, travel_style, or walking_level is not stated, set that field to null. Do not guess a value.
+When destination is not stated, set that field to null. Do not guess a value.
 
 User query:
 {user_query}

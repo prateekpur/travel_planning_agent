@@ -78,12 +78,6 @@ def parse_trip_request(text: str) -> TripRequest:
         name
         for name, value in (
             ("destination", destination),
-            ("days", days),
-            ("adults", adults),
-            ("budget", budget),
-            ("currency", currency),
-            ("travel_style", travel_style),
-            ("walking_level", walking_level),
         )
         if value is None
     ]
@@ -153,10 +147,10 @@ def _adults(text: str) -> int | None:
     return _count(match.group(1))
 
 
-def _children(text: str) -> int:
+def _children(text: str) -> int | None:
     match = _CHILDREN.search(text)
     if match is None:
-        return 0
+        return None
     return _count(match.group(1))
 
 
