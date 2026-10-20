@@ -8,6 +8,7 @@ from cursor_sdk import Agent, AgentOptions, CursorAgentError, LocalAgentOptions
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
+from app.clarify import clarifying_questions, fill_missing
 from app.models.models import TripRequest
 
 ROOT = Path(__file__).resolve().parent
@@ -18,6 +19,11 @@ _FENCE_BLOCK = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.IGNORECASE | re.DOTA
 def main() -> None:
     query = read_user_query()
     trip = trip_request_from_query(query)
+    if sys.stdin.isatty():
+        trip = fill_missing(trip, input)
+    else:
+        for question in clarifying_questions(trip):
+            print(question.prompt)
     print(trip.model_dump_json(indent=2))
 
 
