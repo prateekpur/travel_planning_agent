@@ -1,5 +1,5 @@
 from app.clarify import apply_answer, clarifying_questions, fill_missing
-from app.models.models import TravelStyle, TripRequest, WalkingLevel
+from app.models.models import Budget, BudgetType, TravelStyle, TripRequest, WalkingLevel
 
 
 def test_complete_request_has_no_questions():
@@ -8,8 +8,7 @@ def test_complete_request_has_no_questions():
         days=7,
         adults=2,
         children=2,
-        budget=6000,
-        currency="CAD",
+        budget=Budget(amount=6000, currency="CAD", type="exact"),
         cities=["Tokyo", "Kyoto"],
         travel_style="relaxed",
         walking_level="moderate",
@@ -19,7 +18,7 @@ def test_complete_request_has_no_questions():
 
 
 def test_missing_fields_become_questions():
-    trip = TripRequest(destination="Japan", budget=6000)
+    trip = TripRequest(destination="Japan", budget=Budget(amount=6000))
 
     prompts = {question.field: question.prompt for question in clarifying_questions(trip)}
 
@@ -39,8 +38,12 @@ def test_missing_fields_become_questions():
 def test_apply_budget_answer_also_sets_currency():
     trip = apply_answer(TripRequest(destination="Japan"), "budget", "C$6,000")
 
-    assert trip.budget == 6000
-    assert trip.currency == "CAD"
+    assert trip.budget is not None
+    assert trip.budget.amount == 6000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.EXACT
+    assert trip.budget.includes == []
+    assert trip.budget.excludes == []
 
 
 def test_apply_city_style_and_walking_answers():
@@ -68,8 +71,10 @@ def test_fill_missing_retries_an_invalid_answer():
     assert trip.days == 7
     assert trip.adults == 2
     assert trip.children == 0
-    assert trip.budget == 6000
-    assert trip.currency == "CAD"
+    assert trip.budget is not None
+    assert trip.budget.amount == 6000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.EXACT
     assert trip.cities == ["Tokyo"]
     assert trip.travel_style == TravelStyle.RELAXED
     assert trip.walking_level == WalkingLevel.HIGH

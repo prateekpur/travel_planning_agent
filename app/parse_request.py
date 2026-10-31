@@ -1,7 +1,7 @@
 import re
 from datetime import date
 
-from app.models.models import TravelStyle, TripRequest, WalkingLevel
+from app.models.models import Budget, BudgetType, TravelStyle, TripRequest, WalkingLevel
 
 _NUMBER = r"(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
 _WORD_NUMBERS = {
@@ -40,8 +40,10 @@ _PREFIX_CURRENCY = {
 }
 
 _BUDGET = re.compile(
-    r"(?:budget(?:\s+is)?(?:\s+around)?\s+)?"
-    r"([A-Za-z]{1,2})?\$\s*([\d,]+(?:\.\d+)?)(?:\s+([A-Za-z]{3})\b)?",
+    r"(?:budget(?:\s+is)?\s+)?"
+    r"(?P<hedge>around|about|approximately|roughly)?\s*"
+    r"(?P<prefix>[A-Za-z]{1,2})?\$\s*(?P<amount>[\d,]+(?:\.\d+)?)"
+    r"(?:\s+(?P<code>[A-Za-z]{3})\b)?",
     re.IGNORECASE,
 )
 _DAYS = re.compile(r"\b(\d+)\s*-?\s*days?\b", re.IGNORECASE)
@@ -70,7 +72,7 @@ def parse_trip_request(text: str) -> TripRequest:
     destination = _destination(text)
     days = _days(text)
     adults = _adults(text)
-    budget, currency = _budget_and_currency(text)
+    budget = _budget(text)
     travel_style = _travel_style(text)
     walking_level = _walking_level(text)
 
@@ -90,7 +92,6 @@ def parse_trip_request(text: str) -> TripRequest:
         adults=adults,
         children=_children(text),
         budget=budget,
-        currency=currency,
         cities=_cities(text),
         travel_style=travel_style,
         walking_level=walking_level,
@@ -154,18 +155,21 @@ def _children(text: str) -> int | None:
     return _count(match.group(1))
 
 
-def _budget_and_currency(text: str) -> tuple[float | None, str | None]:
+def _budget(text: str) -> Budget | None:
     match = _BUDGET.search(text)
     if match is None:
-        return None, None
-    amount = float(match.group(2).replace(",", ""))
-    code = match.group(3)
+        return None
+    amount = float(match.group("amount").replace(",", ""))
+    code = match.group("code")
+    prefix = match.group("prefix")
     if code is not None:
-        return amount, code
-    prefix = match.group(1)
-    if prefix is None:
-        return amount, None
-    return amount, _PREFIX_CURRENCY.get(prefix.lower())
+        currency = code
+    elif prefix is not None:
+        currency = _PREFIX_CURRENCY.get(prefix.lower())
+    else:
+        currency = None
+    budget_type = BudgetType.APPROXIMATE if match.group("hedge") else BudgetType.EXACT
+    return Budget(amount=amount, currency=currency, type=budget_type)
 
 
 def _cities(text: str) -> list[str]:

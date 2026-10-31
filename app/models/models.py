@@ -17,15 +17,40 @@ class WalkingLevel(str, Enum):
     HIGH = "high"
 
 
+class BudgetType(str, Enum):
+    EXACT = "exact"
+    APPROXIMATE = "approximate"
+
+
+class Budget(BaseModel):
+    amount: float | None = Field(default=None, gt=0)
+    currency: str | None = Field(default=None, min_length=3, max_length=3, description="ISO 4217 code")
+    type: BudgetType | None = None
+    includes: list[str] = Field(default_factory=list)
+    excludes: list[str] = Field(default_factory=list)
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        code = value.strip().upper()
+        if len(code) != 3 or not code.isalpha():
+            raise ValueError("currency must be a 3-letter ISO code")
+        return code
+
+    @field_validator("includes", "excludes")
+    @classmethod
+    def clean_items(cls, value: list[str]) -> list[str]:
+        return [item.strip() for item in value if item and item.strip()]
+
+
 class TripRequest(BaseModel):
     destination: str = Field(min_length=1, description="Country or region")
     days: int | None = Field(default=None, ge=1)
     adults: int | None = Field(default=None, ge=1)
     children: int | None = Field(default=None, ge=0)
-    budget: float | None = Field(default=None, gt=0)
-    currency: str | None = Field(
-        default=None, min_length=3, max_length=3, description="ISO 4217 code"
-    )
+    budget: Budget | None = None
     cities: list[str] = Field(default_factory=list)
     travel_style: TravelStyle | None = None
     walking_level: WalkingLevel | None = None
@@ -37,16 +62,6 @@ class TripRequest(BaseModel):
         if not cleaned:
             raise ValueError("destination must not be blank")
         return cleaned
-
-    @field_validator("currency")
-    @classmethod
-    def normalize_currency(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        code = value.strip().upper()
-        if len(code) != 3 or not code.isalpha():
-            raise ValueError("currency must be a 3-letter ISO code")
-        return code
 
     @field_validator("cities")
     @classmethod

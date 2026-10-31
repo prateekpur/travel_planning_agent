@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from app.models.models import TravelStyle, TripRequest, WalkingLevel
+from app.models.models import Budget, BudgetType, TravelStyle, TripRequest, WalkingLevel
 
 _WORD_NUMBERS = {
     "one": 1,
@@ -36,6 +36,7 @@ _PREFIX_AMOUNT = re.compile(
 )
 _AMOUNT = re.compile(r"([\d,]+(?:\.\d+)?)")
 _CODE = re.compile(r"\b([A-Za-z]{3})\b")
+_HEDGE = re.compile(r"\b(around|about|approximately|roughly)\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -53,14 +54,14 @@ def clarifying_questions(trip: TripRequest) -> list[ClarifyingQuestion]:
         questions.append(ClarifyingQuestion("adults", "How many adults are traveling?"))
     if trip.children is None:
         questions.append(ClarifyingQuestion("children", "How many children are traveling?"))
-    if trip.budget is None:
+    if trip.budget is None or trip.budget.amount is None:
         questions.append(
             ClarifyingQuestion(
                 "budget",
                 "What is your total budget, including the currency?",
             )
         )
-    elif trip.currency is None:
+    elif trip.budget.currency is None:
         questions.append(ClarifyingQuestion("currency", "Which currency is the budget in?"))
     if not trip.cities:
         questions.append(ClarifyingQuestion("cities", "Which cities do you want to visit?"))
@@ -86,7 +87,7 @@ def apply_answer(trip: TripRequest, field: str, answer: str) -> TripRequest:
     text = answer.strip()
     if not text:
         return trip
-    updates = _updates(field, text)
+    updates = _updates(trip, field, text)
     try:
         return trip.model_copy(update=updates)
     except ValidationError as exc:
@@ -117,7 +118,7 @@ def fill_missing(trip: TripRequest, read_line: Callable[[], str]) -> TripRequest
             asked.discard("currency")
 
 
-def _updates(field: str, text: str) -> dict:
+def _updates(trip: TripRequest, field: str, text: str) -> dict:
     if field == "days":
         return {"days": _whole_number(text, "Enter the number of days, such as 7.")}
     if field == "adults":
@@ -126,12 +127,16 @@ def _updates(field: str, text: str) -> dict:
         return {"children": _whole_number(text, "Enter the number of children, such as 0.")}
     if field == "budget":
         amount, currency = _budget(text)
-        updates: dict = {"budget": amount}
-        if currency is not None:
-            updates["currency"] = currency
-        return updates
+        return {
+            "budget": Budget(
+                amount=amount,
+                currency=currency,
+                type=_budget_type(text),
+            )
+        }
     if field == "currency":
-        return {"currency": _currency(text)}
+        current = trip.budget or Budget()
+        return {"budget": current.model_copy(update={"currency": _currency(text)})}
     if field == "cities":
         return {"cities": _cities(text)}
     if field == "travel_style":
@@ -149,6 +154,12 @@ def _whole_number(text: str, error: str) -> int:
     if raw.isdigit():
         return int(raw)
     return _WORD_NUMBERS[raw.lower()]
+
+
+def _budget_type(text: str) -> BudgetType:
+    if _HEDGE.search(text):
+        return BudgetType.APPROXIMATE
+    return BudgetType.EXACT
 
 
 def _budget(text: str) -> tuple[float, str | None]:

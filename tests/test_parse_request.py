@@ -1,4 +1,4 @@
-from app.models.models import TravelStyle, WalkingLevel
+from app.models.models import BudgetType, TravelStyle, WalkingLevel
 from app.parse_request import parse_trip_request
 
 EXAMPLE = """Plan a 7-day trip to Japan for 2 adults and 2 kids.
@@ -14,8 +14,12 @@ def test_parse_japan_example():
     assert trip.days == 7
     assert trip.adults == 2
     assert trip.children == 2
-    assert trip.budget == 6000
-    assert trip.currency == "CAD"
+    assert trip.budget is not None
+    assert trip.budget.amount == 6000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.EXACT
+    assert trip.budget.includes == []
+    assert trip.budget.excludes == []
     assert trip.cities == ["Tokyo", "Kyoto"]
     assert trip.travel_style == TravelStyle.RELAXED
     assert trip.walking_level == WalkingLevel.MODERATE
@@ -36,8 +40,10 @@ def test_date_range_request_reads_stated_fields():
     assert trip.days == 8
     assert trip.adults == 2
     assert trip.children == 2
-    assert trip.budget == 6000
-    assert trip.currency == "CAD"
+    assert trip.budget is not None
+    assert trip.budget.amount == 6000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.APPROXIMATE
     assert trip.cities == ["Tokyo", "Kyoto"]
     assert trip.travel_style == TravelStyle.RELAXED
     assert trip.walking_level == WalkingLevel.MODERATE
@@ -50,8 +56,10 @@ def test_date_range_request_allows_missing_style_and_walking():
     assert trip.days == 8
     assert trip.adults == 2
     assert trip.children == 2
-    assert trip.budget == 6000
-    assert trip.currency == "CAD"
+    assert trip.budget is not None
+    assert trip.budget.amount == 6000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.APPROXIMATE
     assert trip.cities == ["Tokyo", "Kyoto"]
     assert trip.travel_style is None
     assert trip.walking_level is None
@@ -67,7 +75,6 @@ def test_request_without_budget_or_currency():
     assert trip.adults == 2
     assert trip.children is None
     assert trip.budget is None
-    assert trip.currency is None
     assert trip.cities == ["Tokyo"]
 
 

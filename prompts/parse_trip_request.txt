@@ -7,8 +7,13 @@ Use exactly these fields:
   "days": 1,
   "adults": 1,
   "children": 0,
-  "budget": 0,
-  "currency": "ISO 4217 code",
+  "budget": {
+    "amount": 6500,
+    "currency": "CAD",
+    "type": "approximate",
+    "includes": [],
+    "excludes": []
+  },
   "cities": [],
   "travel_style": "relaxed | balanced | adventure | cultural | luxury",
   "walking_level": "low | moderate | high"
@@ -17,16 +22,15 @@ Use exactly these fields:
 Rules:
 
 - destination is the country or region. Trim surrounding whitespace.
-- days is optional. When stated, it is an integer of at least 1. Read an explicit count such as "7-day" or "7 days". If the query gives a date range, count every calendar date from the start date through the end date. Use null when the query does not name a length.
-- adults is optional. When stated, it is an integer of at least 1. Treat number words such as "two" as digits. Use null when the query does not name a number of adults.
-- children is optional. When stated, it is an integer of 0 or more. "kid", "kids", "child", and "children" all mean children. Use null when the query does not mention children.
-- budget is optional. When stated, it is a number greater than 0. Strip currency symbols and thousands separators ("$6,000" and "C$6,000" are 6000). Ignore words such as "around". Use null when the query does not name a budget.
-- currency is optional. When stated, it is a 3-letter ISO 4217 code in uppercase. Read a code written next to the amount ("6000 CAD"). Also map a symbol prefix: C$ to CAD, US$ to USD, A$ to AUD, NZ$ to NZD, € to EUR, £ to GBP. A bare "$" does not name a currency. Use null when the query does not name a currency.
+- days is optional. When stated, it is an integer of at least 1. Read an explicit count such as "7-day" or "7 days". A week is 7 days, so "two weeks" is 14. If the query gives a date range, count every calendar date from the start date through the end date. Use null when the query does not name a length.
+- adults is the number of travelers who are not children. It is at least 1 when stated. Treat number words such as "two" as digits. A singular traveler counts as 1 adult: "I", "I'm", "me", or "my trip" with no other party size means adults is 1. "I want to travel to Thailand" means adults is 1. Use null only when the query says "we" or "us" and does not give a count.
+- children is optional. When stated, it is an integer of 0 or more. "kid", "kids", "child", and "children" all mean children. When the traveler is singular ("I") and children are not mentioned, children is 0. Use null when a group is mentioned without saying whether any children are included.
+- budget is optional. Use null when the query does not name a budget. When stated, budget is an object, not a number. amount is a number greater than 0 with symbols and thousands separators removed ("C$6,500" is 6500). currency is a 3-letter ISO code in uppercase, read next to the amount ("6500 CAD") or from a symbol prefix: C$ is CAD, US$ is USD, A$ is AUD, NZ$ is NZD, € is EUR, £ is GBP. A bare "$" does not name a currency, so currency is null. type is "approximate" when the query says around, about, approximately, or roughly. Otherwise type is "exact". includes lists costs the budget covers, such as flights or hotels. excludes lists costs it leaves out. Use [] for includes or excludes when the query does not say.
 - cities is an array of city names. Split lists joined by commas and "and". Drop blank names. Use [] when no cities are named.
 - travel_style is optional. When stated, it must be one of: relaxed, balanced, adventure, cultural, luxury. Use null when the query does not name a style.
 - walking_level is optional. When stated, it must be one of: low, moderate, high, read from a phrase about walking such as "moderate walking". Use null when the query does not name a walking level.
 
-When destination is not stated, set that field to null. Do not guess a value.
+When destination is not stated, set that field to null. Do not invent a destination, a budget, or a city. A singular "I" is one adult, not a guess.
 
 User query:
 {user_query}
