@@ -1,0 +1,22 @@
+Research activities for this destination request. Return a JSON array and nothing else: no markdown, no explanation.
+
+Request:
+{request_json}
+
+Each item uses exactly these fields:
+
+{
+  "city": "city name",
+  "activity": "short activity name",
+  "category": "food | culture | outdoors | shopping | technology | family | other",
+  "description": "one or two sentences"
+}
+
+Rules:
+
+- Use the cities in the request. When cities is empty, choose well-known cities in the destination.
+- Prefer activities that match the interests. When interests is empty, choose a mix of well-known activities.
+- Every city must belong to the destination. Do not invent a city in another country.
+- category is one short label from the list above.
+- description says what the traveler would do and why it matches an interest when one applies.
+- Return at least one activity for each requested city.

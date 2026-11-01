@@ -37,6 +37,12 @@ _PREFIX_AMOUNT = re.compile(
 _AMOUNT = re.compile(r"([\d,]+(?:\.\d+)?)")
 _CODE = re.compile(r"\b([A-Za-z]{3})\b")
 _HEDGE = re.compile(r"\b(around|about|approximately|roughly)\b", re.IGNORECASE)
+_CEILING = re.compile(
+    r"\b(?:up to|no more than|not more than|at most|maximum(?:\s+of)?|under|not to exceed)\s+"
+    r"(?:(?P<prefix>[A-Za-z]{1,2})\$|(?P<code>USD|CAD|EUR|GBP|AUD|NZD)\s+)?\$?\s*"
+    r"(?P<amount>[\d,]+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -127,9 +133,13 @@ def _updates(trip: TripRequest, field: str, text: str) -> dict:
         return {"children": _whole_number(text, "Enter the number of children, such as 0.")}
     if field == "budget":
         amount, currency = _budget(text)
+        maximum = _maximum(text)
+        if maximum is not None and amount == maximum:
+            amount = None
         return {
             "budget": Budget(
                 amount=amount,
+                maximum=maximum,
                 currency=currency,
                 type=_budget_type(text),
             )
@@ -160,6 +170,13 @@ def _budget_type(text: str) -> BudgetType:
     if _HEDGE.search(text):
         return BudgetType.APPROXIMATE
     return BudgetType.EXACT
+
+
+def _maximum(text: str) -> float | None:
+    match = _CEILING.search(text)
+    if match is None:
+        return None
+    return float(match.group("amount").replace(",", ""))
 
 
 def _budget(text: str) -> tuple[float, str | None]:

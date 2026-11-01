@@ -78,6 +78,60 @@ def test_request_without_budget_or_currency():
     assert trip.cities == ["Tokyo"]
 
 
+def test_simple_couple():
+    trip = parse_trip_request(
+        "My wife and I want to spend 7 days in Italy in June. "
+        "We have about C$5,000 to spend."
+    )
+
+    assert trip.destination == "Italy"
+    assert trip.days == 7
+    assert trip.adults == 2
+    assert trip.children == 0
+    assert trip.budget is not None
+    assert trip.budget.amount == 5000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.APPROXIMATE
+    assert trip.requirements.hard_constraints == ["travel in June"]
+
+
+def test_budget_ceiling_is_separate_from_the_amount():
+    trip = parse_trip_request(
+        "Plan a 7-day trip to Japan for 2 adults. "
+        "Budget is about C$5,000, no more than C$6,000."
+    )
+
+    assert trip.budget is not None
+    assert trip.budget.amount == 5000
+    assert trip.budget.maximum == 6000
+    assert trip.budget.currency == "CAD"
+    assert trip.budget.type == BudgetType.APPROXIMATE
+
+
+def test_budget_ceiling_without_a_target_amount():
+    trip = parse_trip_request("Plan a trip to Japan for sightseeing. Budget is up to C$4,000.")
+
+    assert trip.budget is not None
+    assert trip.budget.amount is None
+    assert trip.budget.maximum == 4000
+    assert trip.budget.currency == "CAD"
+
+
+def test_solo_traveler():
+    trip = parse_trip_request(
+        "I'm planning a 5-day trip to New York in September with a budget of USD 2,000."
+    )
+
+    assert trip.adults == 1
+    assert trip.children == 0
+    assert trip.days == 5
+    assert trip.destination == "New York"
+    assert trip.budget is not None
+    assert trip.budget.amount == 2000
+    assert trip.budget.currency == "USD"
+    assert trip.budget.type == BudgetType.EXACT
+
+
 def test_request_without_days_or_people():
     trip = parse_trip_request("Plan a trip to Japan for sightseeing. I want Tokyo.")
 
