@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from app.clarify import clarifying_questions, fill_missing
 from app.models.models import TripRequest
+from app.research import request_from_trip, research_destination
 
 ROOT = Path(__file__).resolve().parent
 PROMPT_PATH = ROOT / "prompts" / "parse_trip_request.txt"
@@ -25,6 +26,11 @@ def main() -> None:
         for question in clarifying_questions(trip):
             print(question.prompt)
     print(trip.model_dump_json(indent=2))
+    try:
+        results = research_destination(request_from_trip(trip))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(json.dumps([item.model_dump() for item in results], indent=2))
 
 
 def read_user_query() -> str:

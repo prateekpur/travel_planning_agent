@@ -95,6 +95,7 @@ class DestinationResearchResult(BaseModel):
     activity: str = Field(min_length=1)
     category: str = Field(min_length=1)
     description: str = Field(min_length=1)
+    matched_interests: list[str] = Field(default_factory=list)
 
     @field_validator("city", "activity", "category", "description")
     @classmethod
@@ -103,6 +104,18 @@ class DestinationResearchResult(BaseModel):
         if not cleaned:
             raise ValueError("must not be blank")
         return cleaned
+
+    @field_validator("matched_interests", mode="before")
+    @classmethod
+    def empty_matched_interests(cls, value: list[str] | None) -> list[str]:
+        if value is None:
+            return []
+        return value
+
+    @field_validator("matched_interests")
+    @classmethod
+    def clean_matched_interests(cls, value: list[str]) -> list[str]:
+        return [item.strip() for item in value if item and item.strip()]
 
 
 class TripRequest(BaseModel):

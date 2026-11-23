@@ -1,7 +1,5 @@
-import json
-
 from app.models.models import DestinationResearchRequest, TripRequest
-from app.research import request_from_trip, results_from_text
+from app.research import request_from_trip, research_destination
 
 
 def test_request_from_trip_uses_destination_cities_and_interests():
@@ -30,22 +28,14 @@ def test_research_request_drops_blank_names():
     assert request.interests == ["food"]
 
 
-def test_results_from_text_reads_an_activity_list():
-    payload = json.dumps(
-        [
-            {
-                "city": " Tokyo ",
-                "activity": "Tsukiji outer market",
-                "category": "food",
-                "description": " Walk the stalls and taste street food. ",
-            }
-        ]
+def test_research_destination_reads_the_catalog():
+    request = DestinationResearchRequest(
+        destination="Japan",
+        cities=["Tokyo"],
+        interests=["technology"],
     )
 
-    results = results_from_text(payload)
+    results = research_destination(request)
 
-    assert len(results) == 1
-    assert results[0].city == "Tokyo"
-    assert results[0].activity == "Tsukiji outer market"
-    assert results[0].category == "food"
-    assert results[0].description == "Walk the stalls and taste street food."
+    assert [item.activity for item in results] == ["teamLab Planets"]
+    assert results[0].matched_interests == ["technology"]
