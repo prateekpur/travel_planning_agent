@@ -65,7 +65,16 @@ _DATE_RANGE = re.compile(
     re.IGNORECASE,
 )
 _DESTINATION = re.compile(r"\btrip to\s+(.+?)\s+(?:for|from|in)\b", re.IGNORECASE)
+_DESTINATION_VISIT = re.compile(r"\bvisit\s+([A-Za-z]+)", re.IGNORECASE)
 _DESTINATION_DAYS = re.compile(r"\bdays\s+in\s+([A-Za-z]+)", re.IGNORECASE)
+_SPECIFIC_CITIES = re.compile(
+    r"\bspecifically\s+(.+?)(?=,|\s+for\b|\.|$)",
+    re.IGNORECASE,
+)
+_INTEREST = re.compile(
+    r"\binterests?\s+(?:is|are)\s+(.+?)(?:\.|$)",
+    re.IGNORECASE,
+)
 _TRAVEL_MONTH = re.compile(
     r"\b(?:in|next)\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b",
     re.IGNORECASE,
@@ -122,10 +131,17 @@ def parse_trip_request(text: str) -> TripRequest:
 
 
 def _destination(text: str) -> str | None:
-    match = _DESTINATION.search(text) or _DESTINATION_DAYS.search(text)
+    match = _DESTINATION.search(text) or _place_name(_DESTINATION_VISIT, text) or _place_name(_DESTINATION_DAYS, text)
     if match is None:
         return None
     return match.group(1).strip()
+
+
+def _place_name(pattern: re.Pattern[str], text: str) -> re.Match[str] | None:
+    match = pattern.search(text)
+    if match is None or match.group(1).lower() in _MONTHS:
+        return None
+    return match
 
 
 def _days(text: str) -> int | None:
@@ -185,11 +201,15 @@ def _children(text: str) -> int | None:
 
 
 def _requirements(text: str) -> Requirements:
+    hard_constraints: list[str] = []
     match = _TRAVEL_MONTH.search(text)
-    if match is None:
-        return Requirements()
-    month = match.group(1).capitalize()
-    return Requirements(hard_constraints=[f"travel in {month}"])
+    if match is not None:
+        hard_constraints.append(f"travel in {match.group(1).capitalize()}")
+    interests: list[str] = []
+    interest = _INTEREST.search(text)
+    if interest is not None:
+        interests = _split_names(interest.group(1))
+    return Requirements(hard_constraints=hard_constraints, interests=interests)
 
 
 def _budget(text: str) -> Budget | None:
@@ -235,10 +255,17 @@ def _budget(text: str) -> Budget | None:
 
 
 def _cities(text: str) -> list[str]:
+    specific = _SPECIFIC_CITIES.search(text)
+    if specific is not None:
+        return _split_names(specific.group(1))
     match = _CITIES.search(text)
     if match is None:
         return []
-    parts = re.split(r",|\band\b", match.group(1), flags=re.IGNORECASE)
+    return _split_names(match.group(1))
+
+
+def _split_names(text: str) -> list[str]:
+    parts = re.split(r",|\band\b", text, flags=re.IGNORECASE)
     return [part.strip(" .") for part in parts if part.strip(" .")]
 
 

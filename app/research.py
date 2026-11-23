@@ -1,9 +1,9 @@
 from app.models.models import (
+    DestinationResearchOutput,
     DestinationResearchRequest,
-    DestinationResearchResult,
     TripRequest,
 )
-from app.tools.destination_search import destination_search
+from app.tools.destination_search import search_destination
 
 
 def request_from_trip(trip: TripRequest) -> DestinationResearchRequest:
@@ -15,9 +15,9 @@ def request_from_trip(trip: TripRequest) -> DestinationResearchRequest:
     )
 
 
-def research_destination(request: DestinationResearchRequest) -> list[DestinationResearchResult]:
+def research_destination(request: DestinationResearchRequest) -> DestinationResearchOutput:
     """Look up catalog activities that match the destination request."""
-    return destination_search(
+    return search_destination(
         destination=request.destination,
         cities=request.cities,
         interests=request.interests,

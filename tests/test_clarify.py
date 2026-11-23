@@ -1,3 +1,5 @@
+import warnings
+
 from app.clarify import apply_answer, clarifying_questions, fill_missing
 from app.models.models import Budget, BudgetType, TravelStyle, TripRequest, WalkingLevel
 
@@ -53,8 +55,13 @@ def test_apply_city_style_and_walking_answers():
     trip = apply_answer(trip, "walking_level", "moderate walking")
 
     assert trip.cities == ["Tokyo", "Kyoto"]
+    assert type(trip.travel_style) is TravelStyle
     assert trip.travel_style == TravelStyle.RELAXED
+    assert type(trip.walking_level) is WalkingLevel
     assert trip.walking_level == WalkingLevel.MODERATE
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        trip.model_dump_json()
 
 
 def test_blank_answer_leaves_the_field_empty():
@@ -76,5 +83,10 @@ def test_fill_missing_retries_an_invalid_answer():
     assert trip.budget.currency == "CAD"
     assert trip.budget.type == BudgetType.EXACT
     assert trip.cities == ["Tokyo"]
+    assert type(trip.travel_style) is TravelStyle
     assert trip.travel_style == TravelStyle.RELAXED
+    assert type(trip.walking_level) is WalkingLevel
     assert trip.walking_level == WalkingLevel.HIGH
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        trip.model_dump_json()

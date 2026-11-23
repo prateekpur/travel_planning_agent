@@ -1,4 +1,5 @@
-from app.tools.destination_search import destination_search
+from app.models.models import DestinationResearchStatus
+from app.tools.destination_search import destination_search, search_destination
 
 
 def test_search_returns_activities_whose_interests_match():
@@ -33,5 +34,17 @@ def test_search_without_interests_returns_every_activity_in_the_cities():
     assert all(item.matched_interests == [] for item in results)
 
 
-def test_search_for_an_unknown_destination_is_empty():
+def test_search_for_an_unknown_destination_sets_status():
+    output = search_destination("Mars", interests=["food"])
+
+    assert output.status == DestinationResearchStatus.DESTINATION_NOT_FOUND
+    assert output.activities == []
     assert destination_search("Mars", interests=["food"]) == []
+
+
+def test_search_reports_an_unknown_city_before_selecting_activities():
+    output = search_destination("Japan", cities=["Tokyo", "Osaka"])
+
+    assert output.status == DestinationResearchStatus.CITY_NOT_FOUND
+    assert output.activities == []
+    assert output.reason == "Osaka is not a city in Japan."

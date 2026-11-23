@@ -94,8 +94,11 @@ def apply_answer(trip: TripRequest, field: str, answer: str) -> TripRequest:
     if not text:
         return trip
     updates = _updates(trip, field, text)
+    payload = trip.model_dump()
+    for key, value in updates.items():
+        payload[key] = value.model_dump() if isinstance(value, Budget) else value
     try:
-        return trip.model_copy(update=updates)
+        return TripRequest.model_validate(payload)
     except ValidationError as exc:
         message = exc.errors()[0]["msg"]
         raise ValueError(message) from exc
@@ -212,7 +215,11 @@ def _cities(text: str) -> list[str]:
     return cities
 
 
-def _choice(text: str, enum_type: type[TravelStyle] | type[WalkingLevel], error: str) -> str:
+def _choice(
+    text: str,
+    enum_type: type[TravelStyle] | type[WalkingLevel],
+    error: str,
+) -> TravelStyle | WalkingLevel:
     pattern = re.compile(
         r"\b(" + "|".join(item.value for item in enum_type) + r")\b",
         re.IGNORECASE,
@@ -220,4 +227,4 @@ def _choice(text: str, enum_type: type[TravelStyle] | type[WalkingLevel], error:
     match = pattern.search(text)
     if match is None:
         raise ValueError(error)
-    return match.group(1).lower()
+    return enum_type(match.group(1).lower())

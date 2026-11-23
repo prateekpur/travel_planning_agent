@@ -1,4 +1,4 @@
-from app.models.models import DestinationResearchRequest, TripRequest
+from app.models.models import DestinationResearchRequest, DestinationResearchStatus, TripRequest
 from app.research import request_from_trip, research_destination
 
 
@@ -35,7 +35,27 @@ def test_research_destination_reads_the_catalog():
         interests=["technology"],
     )
 
-    results = research_destination(request)
+    output = research_destination(request)
 
-    assert [item.activity for item in results] == ["teamLab Planets"]
-    assert results[0].matched_interests == ["technology"]
+    assert output.status == DestinationResearchStatus.MATCHED
+    assert output.reason == "Catalog activities matched Japan."
+    assert [item.activity for item in output.activities] == ["teamLab Planets"]
+    assert output.activities[0].matched_interests == ["technology"]
+    assert output.activities[0].status == DestinationResearchStatus.MATCHED
+
+
+def test_research_status_when_nothing_matches():
+    missing = research_destination(DestinationResearchRequest(destination="Mars"))
+    filtered = research_destination(
+        DestinationResearchRequest(
+            destination="Japan",
+            cities=["Tokyo"],
+            interests=["scuba"],
+        )
+    )
+
+    assert missing.status == DestinationResearchStatus.DESTINATION_NOT_FOUND
+    assert missing.activities == []
+    assert filtered.status == DestinationResearchStatus.NO_INTEREST_MATCH
+    assert filtered.activities
+    assert {item.status for item in filtered.activities} == {DestinationResearchStatus.NO_INTEREST_MATCH}
